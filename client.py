@@ -1,34 +1,30 @@
-import requests
+import asyncio
+import websockets
 
-server_url = "http://localhost:5000"
+async def send_message():
+    uri = "ws://localhost:8765"
+    async with websockets.connect(uri) as websocket:
+        content = input("Enter message to send: ")
+        await websocket.send(f"send:{content}")
+        response = await websocket.recv()
+        print(response)
 
-def send_message(content):
-    data = {"content": content}
-    response = requests.post(f"{server_url}/send", json=data)
-    if response.status_code == 200:
-        print("Message sent successfully!")
-    else:
-        print("Failed to send message.")
-
-def receive_messages():
-    response = requests.get(f"{server_url}/receive")
-    if response.status_code == 200:
-        messages = response.json().get("messages", [])
-        print("Received Messages:")
-        for message in messages:
-            print(f"- {message}")
-    else:
-        print("Failed to retrieve messages.")
+async def receive_messages():
+    uri = "ws://localhost:8765"
+    async with websockets.connect(uri) as websocket:
+        await websocket.send("receive")
+        messages = await websocket.recv()
+        print("\nReceived Messages:")
+        print(messages)
 
 if __name__ == '__main__':
     while True:
         choice = input("Choose an action (send/receive/exit): ").lower()
-        
+
         if choice == "send":
-            content = input("Enter message to send: ")
-            send_message(content)
+            asyncio.get_event_loop().run_until_complete(send_message())
         elif choice == "receive":
-            receive_messages()
+            asyncio.get_event_loop().run_until_complete(receive_messages())
         elif choice == "exit":
             break
         else:

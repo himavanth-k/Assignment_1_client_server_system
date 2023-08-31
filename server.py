@@ -1,21 +1,21 @@
-from flask import Flask, request, jsonify
-
-app = Flask(__name__)
+import asyncio
+import websockets
 
 messages = []
 
-@app.route('/send', methods=['POST'])
-def send_message():
-    content = request.json.get('content')
-    if content:
-        messages.append(content)
-        return jsonify({"message": "Message sent successfully!"}), 200
-    else:
-        return jsonify({"error": "Invalid message content!"}), 400
+async def send_message(websocket, path):
+    async for message in websocket:
+        data = message.split(":")
+        action = data[0]
 
-@app.route('/receive', methods=['GET'])
-def receive_messages():
-    return jsonify({"messages": messages}), 200
+        if action == "send":
+            content = data[1]
+            messages.append(content)
+            await websocket.send("Message sent successfully!")
+        elif action == "receive":
+            await websocket.send("\n".join(messages))
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+start_server = websockets.serve(send_message, "localhost", 8765)
+
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
